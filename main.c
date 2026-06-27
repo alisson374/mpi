@@ -1,29 +1,72 @@
-#include <mpich/mpi.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <mpi.h>
 
-int main(int *argc, char ***argv)
+int ehPrimo(int n)
 {
-  // Initialize the MPI environment
-  MPI_Init(argc, argv);
+    if (n < 2) return 0;
+    if (n == 2) return 1;
+    if (n % 2 == 0) return 0;
 
-  // Get the number of processes
-  int world_size;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    for (int i = 3; i <= sqrt(n); i += 2)
+        if (n % i == 0)
+            return 0;
 
-  // Get the rank of the process
-  int world_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    return 1;
+}
 
-  // Get the name of the processor
-  char processor_name[MPI_MAX_PROCESSOR_NAME];
-  int name_len;
-  MPI_Get_processor_name(processor_name, &name_len);
+int main(int argc, char *argv[])
+{
+    MPI_Init(&argc, &argv);
 
-  // Print off a hello world message
-  printf("Hello world from processor %s, rank %d out of %d processors\n",
-         processor_name, world_rank, world_size);
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  // Finalize the MPI environment.
-  MPI_Finalize();
-  return 0;
+    int inicio = 1;
+    int fim = 100;
+
+    int intervalo = (fim - inicio + 1) / size;
+
+    int meuInicio = inicio + rank * intervalo;
+    int meuFim = (rank == size - 1)
+                  ? fim
+                  : meuInicio + intervalo - 1;
+
+    double t0 = MPI_Wtime();
+
+    int local = 0;
+
+    for (int i = meuInicio; i <= meuFim; i++)
+        if (ehPrimo(i))
+            local++;
+
+    int total = 0;
+
+    if (rank == 0)
+    {
+        total = local;
+
+        for (int i = 1; i < size; i++)
+        {
+            int recebido;
+            MPI_Recv(&recebido, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            total += recebido;
+        }
+
+        double t1 = MPI_Wtime();
+
+        printf("=== Paralelo ===\n");
+        printf("Processos: %d\n", size);
+        printf("Primos: %d\n", total);
+        printf("Tempo: %f s\n", t1 - t0);
+    }
+    else
+    {
+        MPI_Send(&local, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    }
+
+    MPI_Finalize();
+    return 0;
 }
