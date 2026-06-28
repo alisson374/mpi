@@ -19,7 +19,7 @@ int ehPrimo(int n)
 int main()
 {
     int inicio = 1;
-    int fim = 1000000;
+    int fim = 2147483647;
 
     clock_t inicio_t = clock();
 
