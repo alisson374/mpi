@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     int inicio = 1;
-    int fim = 2147483647;
+    int fim = 47483647;
 
     int intervalo = (fim - inicio + 1) / size;
 
